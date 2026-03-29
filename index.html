@@ -15,22 +15,56 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Sharp edges only */
-        .border-sharp { border: 1.5px solid #000000; }
-        
-        .product-card {
-            border-bottom: 1px solid #eeeeee;
-            padding-bottom: 2rem;
-        }
-
-        input, select {
+        /* Custom UI Components */
+        .search-input {
             border: none;
             border-bottom: 2px solid #000000;
             border-radius: 0;
-            appearance: none;
+            transition: all 0.2s ease;
         }
 
-        /* Image treatment to ensure they look consistent on white */
+        /* Custom Dropdown Styling */
+        .custom-select-container {
+            position: relative;
+            min-width: 200px;
+        }
+
+        #dropdownToggle {
+            border-bottom: 2px solid #000000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 8px 0;
+            font-size: 0.875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        #dropdownMenu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: white;
+            border: 1px solid #000;
+            z-index: 100;
+            display: none;
+            margin-top: -1px; /* Overlap the bottom border */
+        }
+
+        .dropdown-item {
+            padding: 10px 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        .dropdown-item:last-child { border-bottom: none; }
+        .dropdown-item:hover { background: #000; color: #fff; }
+
         .img-box {
             background-color: #fcfcfc;
             aspect-ratio: 1 / 1;
@@ -38,60 +72,94 @@
             align-items: center;
             justify-content: center;
             overflow: hidden;
+            border: 1px solid #f0f0f0;
         }
 
         .img-box img {
-            max-width: 85%;
-            max-height: 85%;
+            max-width: 80%;
+            max-height: 80%;
             object-fit: contain;
         }
+
+        .show { display: block !important; }
     </style>
 </head>
 <body class="p-6 md:p-12">
 
-    <nav class="max-w-7xl mx-auto mb-20">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
+    <nav class="max-w-7xl mx-auto mb-24">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
             <div>
-                <h1 class="text-4xl font-bold tracking-tighter uppercase mb-2">Inventory.01</h1>
-                <p class="text-xs font-medium opacity-50 uppercase tracking-[0.2em]">HipoBuy Manual Sync / 2026 Edition</p>
+                <h1 class="text-5xl font-bold tracking-tighter uppercase mb-2">Inventory.01</h1>
+                <p class="text-[10px] font-medium opacity-40 uppercase tracking-[0.3em]">HipoBuy / Automatic Archive System</p>
             </div>
 
-            <div class="flex flex-wrap gap-6 w-full md:w-auto">
-                <input type="text" id="searchInput" placeholder="SEARCH_DATABASE" 
-                    class="bg-transparent py-2 text-sm font-bold focus:outline-none w-full md:w-64">
+            <div class="flex flex-col sm:flex-row gap-8 w-full md:w-auto items-start sm:items-end">
+                <div class="w-full sm:w-64">
+                    <input type="text" id="searchInput" placeholder="SEARCH_DB" 
+                        class="search-input bg-transparent py-2 w-full text-sm font-bold focus:outline-none placeholder:text-gray-300">
+                </div>
                 
-                <select id="categoryFilter" class="bg-transparent py-2 text-sm font-bold focus:outline-none cursor-pointer">
-                    <option value="all">ALL_CATEGORIES</option>
-                </select>
+                <div class="custom-select-container">
+                    <div id="dropdownToggle">
+                        <span id="selectedCategory">ALL_CATEGORIES</span>
+                        <i class="fas fa-chevron-down text-[10px] ml-4"></i>
+                    </div>
+                    <div id="dropdownMenu">
+                        <div class="dropdown-item" data-value="all">ALL_CATEGORIES</div>
+                        </div>
+                </div>
             </div>
         </div>
     </nav>
 
     <main class="max-w-7xl mx-auto">
-        <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-12 gap-y-16">
-            </div>
-
-        <div id="noResults" class="hidden pt-20 border-t border-black">
-            <p class="text-sm font-bold uppercase tracking-widest">Query returned zero results.</p>
+        <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-20"></div>
+        <div id="noResults" class="hidden pt-10 border-t border-black uppercase text-xs font-bold tracking-widest">
+            Null response for current filter.
         </div>
     </main>
 
     <script>
         let allData = [];
+        let currentCategory = 'all';
+
+        const toggle = document.getElementById('dropdownToggle');
+        const menu = document.getElementById('dropdownMenu');
+        const selectedText = document.getElementById('selectedCategory');
+
+        // Toggle dropdown visibility
+        toggle.addEventListener('click', () => menu.classList.toggle('show'));
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', (e) => {
+            if (!toggle.contains(e.target)) menu.classList.remove('show');
+        });
 
         async function init() {
             try {
-                const r = await fetch('products.json?nocache=' + Date.now());
+                const r = await fetch('products.json?v=' + Date.now());
                 allData = await r.json();
                 
-                // Set up Category Dropdown
-                const dropdown = document.getElementById('categoryFilter');
+                // Populate custom dropdown
                 const categories = [...new Set(allData.map(p => p.category))].filter(c => c);
-                dropdown.innerHTML = '<option value="all">FILTER / NONE</option>' + 
-                    categories.map(c => `<option value="${c}">${c.toUpperCase()}</option>`).join('');
-                
+                categories.forEach(cat => {
+                    const div = document.createElement('div');
+                    div.className = 'dropdown-item';
+                    div.innerText = cat.toUpperCase();
+                    div.setAttribute('data-value', cat);
+                    div.onclick = () => selectCategory(cat);
+                    menu.appendChild(div);
+                });
+
                 render(allData);
-            } catch (e) { console.error("Data Load Error", e); }
+            } catch (e) { console.error(e); }
+        }
+
+        function selectCategory(val) {
+            currentCategory = val;
+            selectedText.innerText = val === 'all' ? 'ALL_CATEGORIES' : val.toUpperCase();
+            menu.classList.remove('show');
+            handleFilter();
         }
 
         function render(data) {
@@ -106,38 +174,38 @@
 
             empty.classList.add('hidden');
             grid.innerHTML = data.map(item => `
-                <div class="product-card group">
+                <div class="group cursor-pointer">
                     <a href="${item.url}" target="_blank">
-                        <div class="img-box mb-6 transition-colors group-hover:bg-gray-100">
+                        <div class="img-box mb-6 border border-transparent group-hover:border-black transition-all">
                             <img src="${item.image}" alt="${item.name}">
                         </div>
-                        <div class="flex justify-between items-start gap-4">
-                            <div>
-                                <p class="text-[10px] font-bold opacity-40 uppercase tracking-widest mb-1">${item.category || 'General'}</p>
-                                <h3 class="text-sm font-bold leading-snug uppercase tracking-tight line-clamp-2">${item.name}</h3>
+                        <div class="flex justify-between items-start">
+                            <div class="max-w-[70%]">
+                                <p class="text-[9px] font-bold opacity-30 uppercase tracking-[0.2em] mb-1">${item.category || 'General'}</p>
+                                <h3 class="text-xs font-bold leading-tight uppercase tracking-tight line-clamp-2">${item.name}</h3>
                             </div>
-                            <span class="text-lg font-bold tracking-tighter">${item.price}</span>
-                        </div>
-                        <div class="mt-6 flex items-center justify-between border-t border-black pt-4">
-                            <span class="text-[10px] font-bold uppercase tracking-widest">Available</span>
-                            <span class="text-[10px] font-bold uppercase underline">Source Link ↗</span>
+                            <span class="text-base font-bold tracking-tighter">${item.price}</span>
                         </div>
                     </a>
                 </div>
             `).join('');
         }
 
-        const handleFilter = () => {
+        function handleFilter() {
             const query = document.getElementById('searchInput').value.toLowerCase();
-            const category = document.getElementById('categoryFilter').value;
-            render(allData.filter(p => 
-                p.name.toLowerCase().includes(query) && (category === 'all' || p.category === category)
-            ));
-        };
+            const filtered = allData.filter(p => {
+                const matchesSearch = p.name.toLowerCase().includes(query);
+                const matchesCat = currentCategory === 'all' || p.category === currentCategory;
+                return matchesSearch && matchesCat;
+            });
+            render(filtered);
+        }
 
         document.getElementById('searchInput').oninput = handleFilter;
-        document.getElementById('categoryFilter').onchange = handleFilter;
+        document.getElementById('dropdownMenu').children[0].onclick = () => selectCategory('all');
+        
         window.onload = init;
     </script>
+    <script src="https://kit.fontawesome.com/your-font-awesome-key.js" crossorigin="anonymous"></script>
 </body>
 </html>
