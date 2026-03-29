@@ -19,7 +19,7 @@
             100% { background-position: 0% 50%; }
         }
         body {
-            background: linear-gradient(-45deg, #f8fafc, #e2e8f0, #cbd5e1, #f1f5f9);
+            background: linear-gradient(-45deg, #f1f5f9, #e2e8f0, #cbd5e1, #f8fafc);
             background-size: 400% 400%;
             animation: gradient 15s ease infinite;
             min-height: 100vh;
@@ -28,47 +28,66 @@
             background: linear-gradient(-45deg, #020617, #0f172a, #1e293b, #020617);
         }
         .glass {
-            background: rgba(255, 255, 255, 0.4);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
         .dark .glass {
-            background: rgba(15, 23, 42, 0.6);
+            background: rgba(15, 23, 42, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        /* Fix for white backgrounds on images */
-        .product-img {
-            mix-blend-mode: multiply;
+        
+        /* THE IMAGE FIX */
+        .img-container {
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+        
+        .product-img {
+            /* This blends the white background into the glass */
+            mix-blend-mode: multiply; 
+            /* This forces slightly grey backgrounds to become pure white so they disappear */
+            filter: contrast(1.1) brightness(1.05); 
+            transition: transform 0.5s ease;
+        }
+
         .dark .product-img {
+            /* In dark mode, we invert the logic to blend black/white backgrounds */
             mix-blend-mode: screen;
-            filter: brightness(1.1);
+            filter: brightness(1.2) contrast(1.2);
+        }
+
+        .product-card:hover .product-img {
+            transform: scale(1.1);
         }
     </style>
 </head>
 <body class="transition-colors duration-700">
 
-    <nav class="glass sticky top-0 z-50 px-6 py-4 mb-10 shadow-xl">
+    <nav class="glass sticky top-0 z-50 px-6 py-4 mb-10 shadow-2xl">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
             <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-2xl rotate-3">
-                    <i class="fas fa-crown text-xl"></i>
+                <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl rotate-3">
+                    <i class="fas fa-bolt text-xl"></i>
                 </div>
-                <h1 class="text-2xl font-black tracking-tighter dark:text-white">HIPO<span class="text-indigo-600 uppercase">BUY</span></h1>
+                <h1 class="text-2xl font-black tracking-tighter dark:text-white uppercase">HIPO<span class="text-indigo-600">BUY</span></h1>
             </div>
 
             <div class="flex items-center gap-4 w-full md:w-auto">
-                <select id="categoryFilter" class="glass px-4 py-2.5 rounded-2xl outline-none text-xs font-black dark:text-white uppercase tracking-tighter">
-                    <option value="all">Catalog</option>
+                <select id="categoryFilter" class="glass px-4 py-2.5 rounded-2xl outline-none text-xs font-black dark:text-white uppercase">
+                    <option value="all">CATALOG</option>
                 </select>
                 
                 <div class="relative flex-grow md:w-72">
                     <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" id="searchInput" placeholder="Search items..." 
+                    <input type="text" id="searchInput" placeholder="Search gear..." 
                         class="w-full pl-12 pr-4 py-2.5 glass rounded-2xl outline-none dark:text-white placeholder:text-slate-400 focus:ring-2 ring-indigo-500 transition-all">
                 </div>
 
-                <button onclick="toggleTheme()" class="w-11 h-11 glass rounded-2xl flex items-center justify-center dark:text-white hover:bg-indigo-600 hover:text-white transition-all shadow-inner">
+                <button onclick="toggleTheme()" class="w-11 h-11 glass rounded-2xl flex items-center justify-center dark:text-white hover:bg-indigo-600 hover:text-white transition-all">
                     <i id="themeIcon" class="fas fa-moon"></i>
                 </button>
             </div>
@@ -76,7 +95,8 @@
     </nav>
 
     <main class="max-w-7xl mx-auto px-6 pb-20">
-        <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10"></div>
+        <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
+            </div>
         <div id="noResults" class="hidden text-center py-40">
             <p class="text-2xl font-black text-slate-400 uppercase tracking-widest">No Items Found</p>
         </div>
@@ -105,7 +125,7 @@
                 allProducts = await response.json();
                 const dropdown = document.getElementById('categoryFilter');
                 const cats = [...new Set(allProducts.map(p => p.category))].filter(c => c);
-                dropdown.innerHTML = '<option value="all">All Items</option>' + 
+                dropdown.innerHTML = '<option value="all">ALL ITEMS</option>' + 
                     cats.map(c => `<option value="${c}">${c.toUpperCase()}</option>`).join('');
                 renderProducts(allProducts);
             } catch (e) { console.error(e); }
@@ -117,23 +137,23 @@
             if (products.length === 0) { grid.innerHTML = ""; noRes.classList.remove('hidden'); return; }
             noRes.classList.add('hidden');
             grid.innerHTML = products.map(item => `
-                <div class="glass rounded-[2rem] overflow-hidden flex flex-col group hover:scale-[1.02] transition-all duration-500">
-                    <div class="relative aspect-square overflow-hidden bg-white/10 flex items-center justify-center">
-                        <img src="${item.image}" alt="${item.name}" class="product-img w-full h-full object-contain p-8 transform transition-transform duration-700 group-hover:scale-110">
-                        <div class="absolute bottom-4 left-4">
+                <div class="product-card glass rounded-[2.5rem] overflow-hidden flex flex-col group hover:shadow-2xl transition-all duration-500">
+                    <div class="relative aspect-square img-container overflow-hidden">
+                        <img src="${item.image}" alt="${item.name}" class="product-img w-full h-full object-contain p-8">
+                        <div class="absolute top-6 left-6">
                             <span class="glass px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-tighter dark:text-white">
                                 ${item.category || 'General'}
                             </span>
                         </div>
                     </div>
-                    <div class="p-8 flex flex-col flex-grow bg-white/20 dark:bg-black/20">
-                        <h3 class="font-bold text-slate-900 dark:text-white text-lg mb-4 leading-tight h-14 overflow-hidden">
+                    <div class="p-8 flex flex-col flex-grow bg-white/10 dark:bg-black/20">
+                        <h3 class="font-bold text-slate-900 dark:text-white text-lg mb-6 leading-tight h-14 overflow-hidden">
                             ${item.name}
                         </h3>
                         <div class="flex justify-between items-center">
                             <span class="text-3xl font-black text-indigo-600 dark:text-indigo-400 tracking-tighter">${item.price}</span>
                             <a href="${item.url}" target="_blank" class="bg-indigo-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-indigo-500 shadow-lg shadow-indigo-500/40">
-                                <i class="fas fa-external-link-alt"></i>
+                                <i class="fas fa-arrow-right"></i>
                             </a>
                         </div>
                     </div>
